@@ -22,20 +22,38 @@ function rememberPlace(){
         //copy path??
 };
 
+// const update = (data)=>{
+//     data.push();
+// }
 function saveText(text){ // need to change to array 
     // let textList =[];
     // textList.push(text);
-    chrome.storage.local.set({'content': [text]}, ()=>{
+
+    chrome.storage.local.get('content', data=>{
+        console.log(data);
+        update(data.content);
+    })
+    const update =(data)=>{
+        data.push(text);
+        chrome.storage.local.set({'content': data}, ()=>{
         console.log('saved content')
-    });
+        });
+    }
 }
 
 
 const persistToLocalStorage = (url)=>{ //need to change to array 
-    chrome.storage.local.set({'url':[url]}, ()=>{
-        console.log('saved url');
+    chrome.storage.local.get('url', data=>{
+        console.log(data);
+        update(data.url);
     });
-   
+
+    const update =(data)=>{
+        data.push(url);
+        chrome.storage.local.set({'url':data}, ()=>{
+            console.log('saved url');
+        });
+    };
 };
 
 const getItemsFromLocalStorage = async ()=>{
@@ -43,7 +61,7 @@ const getItemsFromLocalStorage = async ()=>{
         chrome.storage.local.get({'url':'','content':''},(res)=>{
             // url = res.url
             console.log('get ' + res.url + res.content)
-            resolve(res.url + ',' + res.content)
+            resolve({url:res.url, placeContent:res.content})
         });
     });
 }
@@ -58,7 +76,7 @@ const populateOptions = (url, placeContent) =>{
     urlObj.map(elem=>{
         let li = document.createElement('li')
         li.innerHTML = `<a href=${elem.url} target="_blank">${elem.text}</a>
-            <span>
+            <span></span>
             <button class="remove">remove</button>
         `;
         bookmarks.append(li);
@@ -67,10 +85,8 @@ const populateOptions = (url, placeContent) =>{
 
 
 async function main(){
-    const res = await getItemsFromLocalStorage();
-    console.log(res);
-    const url = [res.split(",")[0]];
-    const placeContent = [res.split(",")[1]];
+    const {url, placeContent} = await getItemsFromLocalStorage();
+    console.log(url, placeContent);
     if(url !== undefined && placeContent!== undefined){
         console.log(url, placeContent)
         populateOptions(url, placeContent);
@@ -91,13 +107,14 @@ async function getFromCLick(){
             console.log(res[0].result);
             saveText(res[0].result);
         });
-    })
-    
+    });
     const {url, placeContent} = await getItemsFromLocalStorage();
-    console.log(url, placeContent)
-    populateOptions(url, placeContent);
+    if(url !== undefined && placeContent!== undefined){
+        console.log(url, placeContent)
+        populateOptions(url, placeContent);
+    }
+   
 };
-
 
 // async function init(){
 
@@ -114,6 +131,13 @@ async function getFromCLick(){
 
 const add = document.getElementById('add');
 add.addEventListener('click', () =>getFromCLick());
+
+const remove = document.querySelectorAll('remove');
+
+// remove.addEventListener('click', (e)=>{
+//     let elemToBeRemoved = e.target.parentElement;
+//     elemToBeRemoved.remove();
+// })
+
+
 main();
-
-

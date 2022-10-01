@@ -1,2 +1,2 @@
 
-chrome extension that bookmarks a page and the spot where you left off reading
+chrome extension that bookmarks a page and snippet of what you were reading
