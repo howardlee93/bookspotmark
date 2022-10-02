@@ -77,8 +77,11 @@ const populateOptions = (url, placeContent) =>{
         let li = document.createElement('li')
         li.innerHTML = `<a href=${elem.url} target="_blank">${elem.text}</a>
             <span></span>
-            <button class="remove">remove</button>
         `;
+        const btn = document.createElement('button');
+        btn.className = 'remove';
+        btn.innerHTML = 'remove';
+        li.append(btn);
         bookmarks.append(li);
     }); 
 }
@@ -130,14 +133,15 @@ async function getFromCLick(){
 
 
 const add = document.getElementById('add');
-add.addEventListener('click', () =>getFromCLick());
+add.addEventListener('click', () => getFromCLick());
 
-const remove = document.querySelectorAll('remove');
 
-// remove.addEventListener('click', (e)=>{
-//     let elemToBeRemoved = e.target.parentElement;
-//     elemToBeRemoved.remove();
-// })
+//remove nees some work
+const remove = document.getElementsByClassName('remove');
+Array.from(remove).forEach(remove => remove.addEventListener('click', ()=>{
+    let elemToBeRemoved = this.parentElement;
+    console.log(elemToBeRemoved);
+}));
 
 
 main();
