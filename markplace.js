@@ -1,5 +1,4 @@
 
-
 //https://github.com/YonatanKra/social-styled-text/blob/master/ui/popup.js
 async function getCurrentTabUrl() {
     let queryOptions = { active: true, lastFocusedWindow: true };
@@ -11,88 +10,122 @@ async function getCurrentTabUrl() {
 
 
 function rememberPlace(){
-    // console.log(window.getSelection())
-    return window.getSelection().toString();
-    // const line = event.target.textContent;
-    // const srollPlace = event.target.scrollTop; //window.scrollY? // offsetTop
-    //     //get dom path
-    //     // https://stackoverflow.com/questions/5728558/get-the-dom-path-of-the-clicked-a
-    // return {line, srollPlace};
-        
-        //copy path??
+
+    let scrollLeft = window.pageXOffset || document.documentElement.scrollLeft,
+    scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    let selection = window.getSelection().toString();
+    return {selection, scrollLeft, scrollTop}
+
 };
 
-// const update = (data)=>{
-//     data.push();
-// }
-function saveText(text){ // need to change to array 
-    // let textList =[];
-    // textList.push(text);
+function saveText(tabUrl,text){ // need to change to array 
+   
+    let line = text.selection;
+    let scrollLeft = text.scrollLeft;
+    let scrollTop = text.scrollTop;
 
-    chrome.storage.local.get('content', data=>{
+     let dataObj = {
+        line: line.trim(),
+        url: tabUrl,
+        scrollLeft: scrollLeft, //x
+        scrollTop: scrollTop //y 
+    };
+    console.log(dataObj);
+    chrome.storage.local.get('content', data =>{
         console.log(data);
-        update(data.content);
-    })
-    const update =(data)=>{
-        data.push(text);
+        //initialize first?
+        if(Object.keys(data).length === 0 && data.constructor === Object){
+            initialize(data.content)
+        }else{
+            update(data.content);
+        }
+    });
+
+    const initialize =(data)=>{
+        data = [dataObj] //{[tabUrl]: text});
+        chrome.storage.local.set({'content': data}, (res)=>{
+        console.log('initialed' + res)
+        })
+    };
+
+    const update = (data)=>{ // not pushing new obj properly
+        data.push(dataObj) //{[tabUrl]: text});
         chrome.storage.local.set({'content': data}, ()=>{
-        console.log('saved content')
+            console.log('saved content')
         });
     }
 }
-
-
-const persistToLocalStorage = (url)=>{ //need to change to array 
-    chrome.storage.local.get('url', data=>{
-        console.log(data);
-        update(data.url);
-    });
-
-    const update =(data)=>{
-        data.push(url);
-        chrome.storage.local.set({'url':data}, ()=>{
-            console.log('saved url');
-        });
-    };
-};
+ 
 
 const getItemsFromLocalStorage = async ()=>{
     return new Promise((resolve, reject)=>{
-        chrome.storage.local.get({'url':'','content':''},(res)=>{
+        chrome.storage.local.get('content',(res)=>{ //'url':'','content':''
             // url = res.url
-            console.log('get ' + res.url + res.content)
-            resolve({url:res.url, placeContent:res.content})
+            console.log('get '  + res.content) //+ res.url + 
+            resolve(res.content) //{url:res.url, placeContent:res.content}
         });
     });
+};
+
+const removeItem = async (line)=>{ //there is issue
+    await chrome.storage.local.get('content', function(res) {
+        let newRes = res.content.filter(elem => elem.line !== line);
+        console.log(newRes);
+        chrome.storage.local.set({'content': newRes}, function(res) {
+            console.log(res);
+        });
+    });
+};
+
+const scrollToElem = async (x,y)=>{
+    // let queryOptions = { active: true, lastFocusedWindow: true };
+    // await chrome.tabs.query(queryOptions,(tabs)=>{
+    //     const tabId = tabs[0].id;
+    //     console.log(tabId);
+    //     chrome.scripting.executeScript({
+    //         target:{tabId},
+    //         func:  document.body.scrollIntoView(x,y)
+    //     })
+    // });
+    window.scrollTo(x,y)
+
+    // chrome.windows.onCreated.addListener((window)=> window.scrollTo(x,y));
+
+    
 }
 
-const populateOptions = (url, placeContent) =>{
+const populateOptions = (content) =>{
     const bookmarks = document.querySelector("#bookmarks-list");
-    let urlObj = url.map((url,i) =>({
-        url:url,
-        text: placeContent[i]
-    }))
 
-    urlObj.map(elem=>{
+    content.map(elem => {
+        console.log(elem);
         let li = document.createElement('li')
-        li.innerHTML = `<a href=${elem.url} target="_blank">${elem.text}</a>
+        li.innerHTML = `<a href=${elem.url} target="_blank">${elem.line.slice(0,50)}</a>
             <span></span>
         `;
+        const goToBtn = document.createElement('button');
+        goToBtn.className = 'scroll';
+        goToBtn.innerHTML = 'scroll to';
+        goToBtn.addEventListener('click', ()=> scrollToElem(elem.scrollLeft, elem.scrollTop));
+        li.append(goToBtn);
         const btn = document.createElement('button');
         btn.className = 'remove';
         btn.innerHTML = 'remove';
+        btn.addEventListener('click', ()=> removeItem(elem.line))
         li.append(btn);
+       
         bookmarks.append(li);
     }); 
 }
 
 
 async function main(){
-    const {url, placeContent} = await getItemsFromLocalStorage();
-    console.log(url, placeContent);
-    if(url !== undefined && placeContent!== undefined){
-        console.log(url, placeContent)
-        populateOptions(url, placeContent);
+    const content = await getItemsFromLocalStorage();
+    console.log(content);
+    if(content!== undefined){
+        populateOptions(content);
+    }else{
+        return;
     }
 };
 
@@ -102,46 +135,24 @@ async function getFromCLick(){
     await chrome.tabs.query(tabOptions, (tabs)=>{
         const tabId = tabs[0].id;
         const {url} = tabs[0];
-        persistToLocalStorage(url);
         chrome.scripting.executeScript({
             target:{tabId},
             func: rememberPlace
             },(res)=>{
             console.log(res[0].result);
-            saveText(res[0].result);
+            saveText(url, res[0].result);
         });
     });
-    const {url, placeContent} = await getItemsFromLocalStorage();
-    if(url !== undefined && placeContent!== undefined){
-        console.log(url, placeContent)
-        populateOptions(url, placeContent);
+    const content = await getItemsFromLocalStorage();
+    if(content!== undefined){
+        console.log(content)
+        populateOptions(content);
     }
-   
 };
-
-// async function init(){
-
-//     const bookmarks = document.querySelector("#bookmarks-list");
-
-//     let test = document.createElement('li');
-//     let url = await getCurrentTabUrl();
-//     test.innerHTML = `<a href=${url} target="_blank">link1</a><button class="remove">remove</button>; //'hello';
-//     bookmarks.append(test);
-// }
-
-// init();
 
 
 const add = document.getElementById('add');
 add.addEventListener('click', () => getFromCLick());
-
-
-//remove nees some work
-const remove = document.getElementsByClassName('remove');
-Array.from(remove).forEach(remove => remove.addEventListener('click', ()=>{
-    let elemToBeRemoved = this.parentElement;
-    console.log(elemToBeRemoved);
-}));
 
 
 main();
