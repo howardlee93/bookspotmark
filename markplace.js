@@ -1,14 +1,4 @@
 
-//https://github.com/YonatanKra/social-styled-text/blob/master/ui/popup.js
-async function getCurrentTabUrl() {
-    let queryOptions = { active: true, lastFocusedWindow: true };
-    // `tab` will either be a `tabs.Tab` instance or `undefined`.
-    let [tab] = await chrome.tabs.query(queryOptions);
-    console.log(tab);
-    return tab.url;
-};
-
-
 function rememberPlace(){
 
     let scrollLeft = window.pageXOffset || document.documentElement.scrollLeft,
@@ -78,19 +68,15 @@ const removeItem = async (line)=>{ //there is issue
 };
 
 const scrollToElem = async (x,y)=>{
-    // let queryOptions = { active: true, lastFocusedWindow: true };
-    // await chrome.tabs.query(queryOptions,(tabs)=>{
-    //     const tabId = tabs[0].id;
-    //     console.log(tabId);
-    //     chrome.scripting.executeScript({
-    //         target:{tabId},
-    //         func:  document.body.scrollIntoView(x,y)
-    //     })
-    // });
-    window.scrollTo(x,y)
-
-    // chrome.windows.onCreated.addListener((window)=> window.scrollTo(x,y));
-
+    let queryOptions = { active: true, currentWindow: true };
+    await chrome.tabs.query(queryOptions,(tabs)=>{
+        const tabId = tabs[0].id;
+        console.log(tabId, x,y);
+        chrome.scripting.executeScript({
+            target:{tabId},
+            files: ['content.js']
+        })
+    });
     
 }
 
@@ -130,7 +116,7 @@ async function main(){
 };
 
 async function getFromCLick(){
-    let tabOptions = {active: true, currentWindow:true};
+    let tabOptions = {active: true, currentWindow: true};
 
     await chrome.tabs.query(tabOptions, (tabs)=>{
         const tabId = tabs[0].id;
