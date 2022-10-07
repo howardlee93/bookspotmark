@@ -69,12 +69,16 @@ const removeItem = async (line)=>{ //there is issue
 
 const scrollToElem = async (x,y)=>{
     let queryOptions = { active: true, currentWindow: true };
+    window.postMessage({ type: "FROM_MY_EXTENSIONS", value:{x, y} }, "*");
     await chrome.tabs.query(queryOptions,(tabs)=>{
         const tabId = tabs[0].id;
         console.log(tabId, x,y);
+        chrome.tabs.sendMessage(tabId,{ type: "FROM_MY_EXTENSIONS", value:{x, y}}, res=>{
+            console.log(res);
+        });
         chrome.scripting.executeScript({
             target:{tabId},
-            files: ['content.js']
+            files: ['content.js'],
         })
     });
     
