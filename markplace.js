@@ -67,21 +67,19 @@ const removeItem = async (line)=>{ //there is issue
     });
 };
 
-const scrollToElem = async (x,y)=>{
+const scrollToElem = async (line,x,y)=>{
     let queryOptions = { active: true, currentWindow: true };
-    window.postMessage({ type: "FROM_MY_EXTENSIONS", value:{x, y} }, "*");
     await chrome.tabs.query(queryOptions,(tabs)=>{
         const tabId = tabs[0].id;
         console.log(tabId, x,y);
-        chrome.tabs.sendMessage(tabId,{ type: "FROM_MY_EXTENSIONS", value:{x, y}}, res=>{
+        chrome.tabs.sendMessage(tabId,{ type: "FROM_MY_EXTENSIONS", value:{line, x, y}}, res=>{
             console.log(res);
         });
         chrome.scripting.executeScript({
             target:{tabId},
             files: ['content.js'],
         })
-    });
-    
+    });   
 }
 
 const populateOptions = (content) =>{
@@ -96,7 +94,7 @@ const populateOptions = (content) =>{
         const goToBtn = document.createElement('button');
         goToBtn.className = 'scroll';
         goToBtn.innerHTML = 'scroll to';
-        goToBtn.addEventListener('click', ()=> scrollToElem(elem.scrollLeft, elem.scrollTop));
+        goToBtn.addEventListener('click', ()=> scrollToElem(elem.line, elem.scrollLeft, elem.scrollTop));
         li.append(goToBtn);
         const btn = document.createElement('button');
         btn.className = 'remove';
@@ -112,7 +110,7 @@ const populateOptions = (content) =>{
 async function main(){
     const content = await getItemsFromLocalStorage();
     console.log(content);
-    if(content!== undefined){
+    if(content.length > 0){
         populateOptions(content);
     }else{
         return;
